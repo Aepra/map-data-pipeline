@@ -1,0 +1,40 @@
+name: Auto Update Parquet
+
+on:
+  schedule:
+    - cron: '0 */4 * * *' # Setiap 4 jam
+  workflow_dispatch:      # Tombol manual untuk testing
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install SQL Server Driver & Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unixodbc-dev
+          pip install -r requirements.txt
+
+      - name: Execute Script
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+        run: python scripts/update_data.py
+
+      - name: Commit and Push Parquet
+        run: |
+          git config --global user.name "GitHub Action Bot"
+          git config --global user.email "actions@github.com"
+          git add data/peta_murid.parquet
+          git commit -m "Update data peta: $(date)" || echo "No changes to commit"
+          git push
