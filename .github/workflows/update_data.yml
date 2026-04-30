@@ -2,25 +2,32 @@ name: Auto Update Parquet
 
 on:
   schedule:
-    - cron: '0 */4 * * *' # Setiap 4 jam
-  workflow_dispatch:      # Tombol manual untuk testing
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
 
 jobs:
   update-data:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # Update ke v4 agar tidak kena warning Node.js 20
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5 # Update ke v5
         with:
           python-version: '3.10'
 
-      - name: Install SQL Server Driver & Dependencies
+      - name: Install Microsoft ODBC Driver 17
         run: |
+          # Menambahkan key dan repository Microsoft ke Ubuntu
+          curl https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
+          curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
           sudo apt-get update
-          sudo apt-get install -y unixodbc-dev
+          # Menginstal driver tanpa interaksi user (ACCEPT_EULA)
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17 unixodbc-dev
+
+      - name: Install Dependencies
+        run: |
           pip install -r requirements.txt
 
       - name: Execute Script
